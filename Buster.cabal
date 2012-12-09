@@ -25,7 +25,8 @@ executable buster
                   http-conduit ==1.8.*,
                   http-types ==0.7.*,
                   unbounded-delays ==0.1.*,
-                  data-default ==0.5.*
+                  data-default ==0.5.*,
+                  hslogger ==1.2.*
   -- probably monad-logger, fast-logger is simpler
 
 test-suite spec

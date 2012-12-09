@@ -10,6 +10,7 @@ import System.IO (hPutStrLn, stderr)
 import Buster.Pool (newPool, startPool)
 import Buster.Config (loadConfig)
 import Buster.Types
+import Buster.Logger
 
 --TODO: use eitherT
 main :: IO ()
@@ -25,8 +26,11 @@ runWithPath path = either badConfigError run =<< loadConfig path
 
 -- TODO: trap sigints and exit successfully
 run :: Config -> IO (MVar ())
-run cfg = do pool <- newPool cfg
+run cfg = do configureLogger $ configVerbose cfg
+             infoM "Starting Buster"
+             pool <- newPool cfg
              startPool pool
+             infoM "Pool started"
              newEmptyMVar
 
 
