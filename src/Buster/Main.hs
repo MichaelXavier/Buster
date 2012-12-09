@@ -16,6 +16,7 @@ import Buster.Logger
 main :: IO ()
 main = do configFile <- listToMaybe <$> getArgs
           exitSig    <- maybe noConfigError runWithPath configFile
+          --TODO: debug the blocked indefinitely on MVar error
           takeMVar exitSig
   where noConfigError = failWith "Specify config file" >> error "nah dude"
 
