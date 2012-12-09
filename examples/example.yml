@@ -1,0 +1,8 @@
+verbose: true
+urls:
+- url: http://www.example.com
+  interval: 5
+  method: GET
+- url: http://www.example.net
+  interval: 2
+  method: GET
