@@ -2,7 +2,13 @@ module Main (main) where
 
 import Control.Applicative ((<$>))
 import Control.Concurrent (threadDelay)
+import Control.Error (hoistEither)
+import Control.Error.Script (Script, runScript, scriptIO)
+import Control.Error.Safe (tryHead)
 import Control.Monad (forever)
+-- sigh
+import Control.Monad.Trans.Class (lift)
+import Control.Monad.IO.Class (liftIO)
 import Data.Maybe (listToMaybe)
 import System.Environment (getArgs)
 import System.Exit (exitFailure)
@@ -15,17 +21,17 @@ import Buster.Logger
 
 --TODO: use eitherT
 main :: IO ()
-main = do configFile <- listToMaybe <$> getArgs
-          maybe noConfigError runWithPath configFile
-          debugM "Sleeping main thread indefinitely"
-          forever $ threadDelay maxBound
-          --TODO: debug the blocked indefinitely on MVar error
-  where noConfigError = failWith "Specify config file" >> error "nah dude"
-
+main = runScript $ do
+         args       <- scriptIO getArgs 
+         configFile <- tryHead "Specify a config file" args
+         scriptIO $ do runWithPath configFile
+                       debugM "Sleeping main thread indefinitely"
+                       waitForever
 
 runWithPath :: FilePath -> IO ()
-runWithPath path = either badConfigError run =<< loadConfig path
-  where badConfigError msg = failWith msg >> error "nah dude"
+runWithPath path = runScript $ do config  <- scriptIO $ loadConfig path
+                                  config' <- hoistEither config
+                                  scriptIO $ run config'
 
 -- TODO: trap sigints and exit successfully
 run :: Config -> IO ()
@@ -35,5 +41,5 @@ run cfg = do configureLogger $ configVerbose cfg
              startPool pool
              infoM "Pool started"
 
-failWith :: String -> IO ()
-failWith msg = hPutStrLn stderr msg >> exitFailure
+waitForever :: IO ()
+waitForever = forever $ threadDelay maxBound

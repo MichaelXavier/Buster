@@ -1,11 +1,12 @@
 module Buster.Request (makeRequest) where
 
+import Control.Monad.IO.Class (liftIO)
 import Data.Char (toUpper)
 import Data.Conduit (runResourceT)
 import Data.Ix (inRange)
 import Data.Monoid (mconcat)
 import qualified Data.ByteString.Char8 as BS8 (unpack)
-import Network.HTTP.Conduit (Manager, Request(..), parseUrl, httpLbs, Response(..))
+import Network.HTTP.Conduit (Manager, Request(..), parseUrl, httpLbs, http, Response(..), withManager)
 import Network.HTTP.Types (Status(..))
 
 import Buster.Types
@@ -16,14 +17,17 @@ makeRequest :: Manager -> UrlConfig -> IO ()
 makeRequest mgr urlConfig = do debugM $ "Parsing " ++ show urlConfig
                                req <- generateRequest urlConfig
                                debugM $ formatRequest urlConfig
-                               resp <- runResourceT $ httpLbs req mgr
+                               resp <- withManager $ httpLbs req 
+                               --body <- responseBody resp
+                               --print body
                                logResponse urlConfig resp
 
 --TODO: i think i need to deal with Failure instance better
 generateRequest :: UrlConfig -> IO (Request m')
 generateRequest UrlConfig { url = u,
                             requestMethod = meth } = do req <- parseUrl u
-                                                        return req { method = meth }
+                                                        return req { method = meth,
+                                                                     checkStatus = \_ _ -> Nothing }
 
 formatRequest :: UrlConfig -> String
 formatRequest UrlConfig { url = u,

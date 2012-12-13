@@ -10,6 +10,12 @@ import Control.Monad (forever)
 import Data.Default (def)
 import Network.HTTP.Conduit (Manager, newManager, closeManager)
 
+
+import Control.Error.Script
+import Control.Error.Util
+
+
+import Buster.Logger
 import Buster.Types
 import Buster.Request (makeRequest)
 
@@ -40,6 +46,10 @@ startPool bp@BusterPool { connectionManager = mgr,
 
 --TODO: logger
 buildWorker :: Manager -> UrlConfig -> IO Worker
-buildWorker mgr urlConfig = forkIO $ forever $ do makeRequest mgr urlConfig
-                                                  delay microseconds
+buildWorker mgr urlConfig = forkIO $ do
+                              forever $ do
+                                runScript $ do scriptIO $ debugM "RUN"
+                                               scriptIO $ makeRequest mgr urlConfig
+                                               scriptIO $ debugM "DONE"
+                                               scriptIO $ delay microseconds
   where microseconds = 1000000 * (requestInterval urlConfig)
