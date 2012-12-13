@@ -13,6 +13,7 @@ import Data.Maybe (listToMaybe)
 import System.Environment (getArgs)
 import System.Exit (exitFailure)
 import System.IO (hPutStrLn, stderr)
+import System.Posix.Signals (SignalSet, addSignal, emptySignalSet, awaitSignal, sigHUP, blockSignals, reservedSignals)
 
 import Buster.Pool (newPool, startPool)
 import Buster.Config (loadConfig)
@@ -25,8 +26,13 @@ main = runScript $ do
          args       <- scriptIO getArgs 
          configFile <- tryHead "Specify a config file" args
          scriptIO $ do runWithPath configFile
-                       debugM "Sleeping main thread indefinitely"
-                       waitForever
+                       -- when this is run, it blocks, and seems to block the request threads from completing
+                       blockSignals reservedSignals
+                       forever $ do
+                        debugM "Awaiting Signals"
+                        awaitSignal Nothing -- don't know why I'm using Nothing here
+                        debugM "TODO: reload config"
+  where signalSet = Just $ addSignal sigHUP emptySignalSet 
 
 runWithPath :: FilePath -> IO ()
 runWithPath path = runScript $ do config  <- scriptIO $ loadConfig path

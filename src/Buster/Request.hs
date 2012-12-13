@@ -1,6 +1,7 @@
 module Buster.Request (makeRequest) where
 
 import Control.Monad.IO.Class (liftIO)
+import qualified Control.Exception.Base as E
 import Data.Char (toUpper)
 import Data.Conduit (runResourceT)
 import Data.Ix (inRange)
@@ -17,10 +18,15 @@ makeRequest :: Manager -> UrlConfig -> IO ()
 makeRequest mgr urlConfig = do debugM $ "Parsing " ++ show urlConfig
                                req <- generateRequest urlConfig
                                debugM $ formatRequest urlConfig
-                               resp <- withManager $ httpLbs req 
+                               resp <- (runResourceT $ httpLbs req mgr) `E.catch` handleThatDamnException
+                               debugM $ "Never gets here"
                                --body <- responseBody resp
                                --print body
                                logResponse urlConfig resp
+  where handleThatDamnException e = do let err = show (e :: E.IOException)
+                                       debugM "AW HELL NAW"
+                                       errorM $ show err
+                                       return undefined
 
 --TODO: i think i need to deal with Failure instance better
 generateRequest :: UrlConfig -> IO (Request m')
@@ -36,7 +42,7 @@ formatRequest UrlConfig { url = u,
 
 logResponse :: UrlConfig -> Response a -> IO ()
 logResponse urlConfig Response { responseStatus = Status { statusCode = code},
-                                 responseBody = body } = if success
+                                 responseBody = _ } = if success
                                                            then logSuccess
                                                            else logFailure
   where success = inRange (200, 399) code
