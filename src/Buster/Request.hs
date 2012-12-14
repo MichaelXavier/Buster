@@ -1,6 +1,7 @@
 module Buster.Request (makeRequest) where
 
-import Control.Monad.IO.Class (liftIO)
+import Control.Error
+import Control.Monad.IO.Class (MonadIO, liftIO)
 import qualified Control.Exception.Base as E
 import Data.Char (toUpper)
 import Data.Conduit (runResourceT)
@@ -14,14 +15,16 @@ import Buster.Types
 import Buster.Logger
 
 makeRequest :: Manager -> UrlConfig -> IO ()
-makeRequest mgr urlConfig = do debugM $ "Parsing " ++ show urlConfig
-                               req <- generateRequest urlConfig
-                               debugM $ formatRequest urlConfig
-                               resp <- (runResourceT $ httpLbs req mgr) `E.catch` handleThatDamnException
-                               logResponse urlConfig resp
-  where handleThatDamnException e = do let err = show (e :: E.IOException)
-                                       errorM $ show err
-                                       return undefined -- gotta do better than this
+makeRequest mgr urlConfig = do
+  resp <- runEitherT $ do
+    tryIOMsg $ do
+      debugM $ "Parsing " ++ show urlConfig
+      req  <- generateRequest urlConfig
+      debugM $ formatRequest urlConfig
+      runResourceT $ httpLbs req mgr
+  either logErrorMessage logSuccess resp
+  where logSuccess      = logResponse urlConfig
+        logErrorMessage = errorM
 
 --TODO: i think i need to deal with Failure instance better
 generateRequest :: UrlConfig -> IO (Request m')
@@ -44,3 +47,12 @@ logResponse urlConfig Response { responseStatus = Status { statusCode = code},
         logSuccess = debugM formatMessage
         logFailure = errorM formatMessage
         formatMessage = mconcat [show code, formatRequest urlConfig]
+
+-- Y U NO CATCH InvalidUrlException?
+tryIOMsg :: (MonadIO m) => IO a -> EitherT String m a
+tryIOMsg action = fmapLT show $ tryIO' action
+
+-- Need to be able to catch everything since parsing URLs can throw
+-- ParseExceptions. Why does Haskell even have exceptions :(
+tryIO' :: (MonadIO m) => IO a -> EitherT E.SomeException m a
+tryIO' = EitherT . liftIO . E.try
