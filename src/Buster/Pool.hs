@@ -46,10 +46,7 @@ startPool bp@BusterPool { connectionManager = mgr,
 
 --TODO: logger
 buildWorker :: Manager -> UrlConfig -> IO Worker
-buildWorker mgr urlConfig = forkIO $ do
-                              forever $ do
-                                runScript $ do scriptIO $ debugM "RUN"
-                                               scriptIO $ makeRequest mgr urlConfig
-                                               scriptIO $ debugM "DONE"
-                                               scriptIO $ delay microseconds
+buildWorker mgr urlConfig = forkIO $ forever $ do
+                              makeRequest mgr urlConfig
+                              delay microseconds
   where microseconds = 1000000 * (requestInterval urlConfig)

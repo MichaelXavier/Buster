@@ -13,20 +13,15 @@ import Network.HTTP.Types (Status(..))
 import Buster.Types
 import Buster.Logger
 
--- todo: logger, request manager
 makeRequest :: Manager -> UrlConfig -> IO ()
 makeRequest mgr urlConfig = do debugM $ "Parsing " ++ show urlConfig
                                req <- generateRequest urlConfig
                                debugM $ formatRequest urlConfig
                                resp <- (runResourceT $ httpLbs req mgr) `E.catch` handleThatDamnException
-                               debugM $ "Never gets here"
-                               --body <- responseBody resp
-                               --print body
                                logResponse urlConfig resp
   where handleThatDamnException e = do let err = show (e :: E.IOException)
-                                       debugM "AW HELL NAW"
                                        errorM $ show err
-                                       return undefined
+                                       return undefined -- gotta do better than this
 
 --TODO: i think i need to deal with Failure instance better
 generateRequest :: UrlConfig -> IO (Request m')

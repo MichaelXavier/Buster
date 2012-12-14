@@ -2,6 +2,7 @@ module Main (main) where
 
 import Control.Applicative ((<$>))
 import Control.Concurrent (threadDelay)
+import Control.Concurrent.MVar
 import Control.Error (hoistEither)
 import Control.Error.Script (Script, runScript, scriptIO)
 import Control.Error.Safe (tryHead)
@@ -13,39 +14,50 @@ import Data.Maybe (listToMaybe)
 import System.Environment (getArgs)
 import System.Exit (exitFailure)
 import System.IO (hPutStrLn, stderr)
-import System.Posix.Signals (SignalSet, addSignal, emptySignalSet, awaitSignal, sigHUP, blockSignals, reservedSignals)
+import System.Posix.Signals (SignalSet, addSignal, emptySignalSet, awaitSignal, sigHUP, blockSignals, reservedSignals, installHandler, Handler(..))
 
-import Buster.Pool (newPool, startPool)
+import Buster.Pool (newPool, startPool, stopPool)
 import Buster.Config (loadConfig)
 import Buster.Types
 import Buster.Logger
 
 --TODO: use eitherT
+--TODO: isolate just sig handlers to its own test file. compile with -threaded
 main :: IO ()
 main = runScript $ do
          args       <- scriptIO getArgs 
          configFile <- tryHead "Specify a config file" args
-         scriptIO $ do runWithPath configFile
-                       -- when this is run, it blocks, and seems to block the request threads from completing
-                       blockSignals reservedSignals
-                       forever $ do
-                        debugM "Awaiting Signals"
-                        awaitSignal Nothing -- don't know why I'm using Nothing here
-                        debugM "TODO: reload config"
-  where signalSet = Just $ addSignal sigHUP emptySignalSet 
 
-runWithPath :: FilePath -> IO ()
-runWithPath path = runScript $ do config  <- scriptIO $ loadConfig path
-                                  config' <- hoistEither config
-                                  scriptIO $ run config'
+         scriptIO $ do
+          configMV   <- newEmptyMVar
 
--- TODO: trap sigints and exit successfully
-run :: Config -> IO ()
-run cfg = do configureLogger $ configVerbose cfg
-             infoM "Starting Buster"
-             pool <- newPool cfg
-             startPool pool
-             infoM "Pool started"
+          debugM "Loading initial config"
 
-waitForever :: IO ()
-waitForever = forever $ threadDelay maxBound
+          reloadConfig configFile configMV
+
+          debugM "Installing Signal Handlers"
+          blockSignals reservedSignals
+          installHandler sigHUP (Catch $ reloadConfig configFile configMV) Nothing
+
+          run configMV
+
+run :: MVar Config -> IO ()
+run configMV = runScript $ scriptIO $ runWithConfig configMV =<< takeMVar configMV
+
+runWithConfig :: MVar Config -> Config -> IO ()
+runWithConfig configMV cfg = do stoppedPool  <- newPool cfg
+                                pool         <- startPool stoppedPool
+                                newCfg       <- takeMVar configMV
+                                stopPool pool
+                                runWithConfig configMV newCfg
+
+reloadConfig :: FilePath -> MVar Config -> IO ()
+reloadConfig configFile configMV = runScript $ do
+  scriptIO $ debugM "Config file reloading"
+  config' <- scriptIO $ loadConfig configFile
+  config  <- hoistEither config'
+  scriptIO $ do
+    debugM "Config file successfully parsed"
+    debugM "Reconfiguring Logger"
+    configureLogger $ configVerbose config
+    putMVar configMV config
