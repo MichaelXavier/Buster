@@ -18,7 +18,7 @@ makeRequest :: Manager -> UrlConfig -> IO ()
 makeRequest mgr urlConfig = do
   resp <- runEitherT $ do
     tryIOMsg $ do
-      debugM $ "Parsing " ++ show urlConfig
+      debugM $ "Parsing " ++ url urlConfig
       req  <- generateRequest urlConfig
       debugM $ formatRequest urlConfig
       runResourceT $ httpLbs req mgr
@@ -26,7 +26,6 @@ makeRequest mgr urlConfig = do
   where logSuccess      = logResponse urlConfig
         logErrorMessage = errorM
 
---TODO: i think i need to deal with Failure instance better
 generateRequest :: UrlConfig -> IO (Request m')
 generateRequest UrlConfig { url = u,
                             requestMethod = meth } = do req <- parseUrl u
@@ -46,9 +45,8 @@ logResponse urlConfig Response { responseStatus = Status { statusCode = code},
   where success = inRange (200, 399) code
         logSuccess = debugM formatMessage
         logFailure = errorM formatMessage
-        formatMessage = mconcat [show code, formatRequest urlConfig]
+        formatMessage = mconcat [show code, " (", formatRequest urlConfig, ")"]
 
--- Y U NO CATCH InvalidUrlException?
 tryIOMsg :: (MonadIO m) => IO a -> EitherT String m a
 tryIOMsg action = fmapLT show $ tryIO' action
 

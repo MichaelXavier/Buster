@@ -36,9 +36,8 @@ instance FromJSON UrlConfig where
 
 data BusterPool = BusterPool {
   connectionManager :: Manager,
-  config :: Config,
-  -- TODO: logger
-  workers :: [Worker]
+  config            :: Config,
+  workers           :: [Worker]
 }
 
 instance Show BusterPool where

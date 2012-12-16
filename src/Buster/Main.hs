@@ -21,8 +21,6 @@ import Buster.Config (loadConfig)
 import Buster.Types
 import Buster.Logger
 
---TODO: use eitherT
---TODO: isolate just sig handlers to its own test file. compile with -threaded
 main :: IO ()
 main = runScript $ do
          args       <- scriptIO getArgs 
