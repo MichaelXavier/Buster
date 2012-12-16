@@ -6,7 +6,6 @@ module Buster.Types (Config(..),
 
 import Control.Applicative ((<$>), (<*>))
 import Control.Concurrent (ThreadId)
---import Data.IORef
 import Data.List (intercalate)
 import Data.Yaml (FromJSON(..), (.:?), (.:), (.!=), Value(..))
 import Network.HTTP.Conduit (Manager)
@@ -14,11 +13,13 @@ import Network.HTTP.Types (Method)
 
 data Config = Config {
   configVerbose :: Bool,
+  configMonitor :: Bool,
   urlConfigs :: [UrlConfig]
 } deriving (Show, Eq)
 
 instance FromJSON Config where
   parseJSON (Object v) = Config <$> v .:? "verbose" .!= False
+                                <*> v .:? "monitor" .!= False
                                 <*> v .: "urls"
   parseJSON _          = fail "Expecting Object"
 

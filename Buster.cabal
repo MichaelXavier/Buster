@@ -30,7 +30,8 @@ executable buster
                   unbounded-delays ==0.1.*,
                   data-default ==0.5.*,
                   hslogger ==1.2.*,
-                  transformers ==0.3.*
+                  transformers ==0.3.*,
+                  hinotify ==0.3.*
 
   -- probably monad-logger, fast-logger is simpler
 

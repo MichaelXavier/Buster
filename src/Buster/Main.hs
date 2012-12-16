@@ -1,7 +1,10 @@
 module Main (main) where
 
 import Control.Applicative ((<$>))
-import Control.Concurrent (threadDelay)
+import Control.Concurrent (threadDelay,
+                           killThread,
+                           forkIO,
+                           ThreadId)
 import Control.Concurrent.MVar
 import Control.Error (hoistEither)
 import Control.Error.Script (Script, runScript, scriptIO)
@@ -19,6 +22,7 @@ import Buster.Pool (newPool, startPool, stopPool)
 import Buster.Config (loadConfig)
 import Buster.Types
 import Buster.Logger
+import Buster.Monitor
 
 main :: IO ()
 main = runScript $ do
@@ -36,17 +40,31 @@ main = runScript $ do
           blockSignals reservedSignals
           installHandler sigHUP (Catch $ reloadConfig configFile configMV) Nothing
 
-          run configMV
+          run configFile configMV
 
-run :: MVar Config -> IO ()
-run configMV = runScript $ scriptIO $ runWithConfig configMV =<< takeMVar configMV
+run :: FilePath -> MVar Config -> IO ()
+run configFile configMV = runScript $ scriptIO $ runWithConfig configFile configMV =<< takeMVar configMV
 
-runWithConfig :: MVar Config -> Config -> IO ()
-runWithConfig configMV cfg = do stoppedPool  <- newPool cfg
-                                pool         <- startPool stoppedPool
-                                newCfg       <- takeMVar configMV
-                                stopPool pool
-                                runWithConfig configMV newCfg
+runWithConfig :: FilePath -> MVar Config -> Config -> IO ()
+runWithConfig configFile configMV cfg = do 
+  stoppedPool   <- newPool cfg
+  pool          <- startPool stoppedPool
+  mayMonitorTid <- if configMonitor cfg
+                     then debugM "Installing monitor" >>
+                       Just <$> installMonitor configFile configMV
+                     else return Nothing
+  newCfg        <- takeMVar configMV
+  case mayMonitorTid of
+    Just tid -> debugM "Killing monitor" >> killThread tid
+    _        -> return ()
+  stopPool pool
+  runWithConfig configFile configMV newCfg
+
+
+installMonitor :: FilePath -> MVar Config -> IO ThreadId
+installMonitor path configMV = forkIO $ monitorForUpdates path callback
+  where callback = logUpdate >> reloadConfig path configMV
+        logUpdate = debugM $ "File " ++ path ++ " updated"
 
 reloadConfig :: FilePath -> MVar Config -> IO ()
 reloadConfig configFile configMV = runScript $ do
@@ -57,4 +75,5 @@ reloadConfig configFile configMV = runScript $ do
     debugM "Config file successfully parsed"
     debugM "Reconfiguring Logger"
     configureLogger $ configVerbose config
+    debugM "Reconfiguring Logger"
     putMVar configMV config
