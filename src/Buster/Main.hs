@@ -13,7 +13,6 @@ import Control.Monad.IO.Class (liftIO)
 import Data.Maybe (listToMaybe)
 import System.Environment (getArgs)
 import System.Exit (exitFailure)
-import System.IO (hPutStrLn, stderr)
 import System.Posix.Signals (SignalSet, addSignal, emptySignalSet, awaitSignal, sigHUP, blockSignals, reservedSignals, installHandler, Handler(..))
 
 import Buster.Pool (newPool, startPool, stopPool)

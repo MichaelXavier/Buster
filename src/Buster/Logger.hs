@@ -10,7 +10,7 @@ module Buster.Logger (configureLogger,
                       emergencyM) where
 
 import Control.Applicative ((<$>), (<*>), pure)
-import System.IO (stderr)
+import System.IO (stdout)
 import System.Log.Logger (updateGlobalLogger,
                           Priority(..),
                           rootLoggerName,
@@ -27,7 +27,7 @@ configureLogger verbose = do handler <- setFormatter <$> defaultHandler <*> pure
                              setLogLevel
 
                              
-  where defaultHandler = verboseStreamHandler stderr logLevel 
+  where defaultHandler = verboseStreamHandler stdout logLevel 
         setLogHandler handler = updateGlobalLogger defaultLog $ setHandlers [handler]
         setLogLevel           = updateGlobalLogger defaultLog $ setLevel logLevel
         defaultFormatter      = simpleLogFormatter defaultFormat
