@@ -49,22 +49,27 @@ runWithConfig :: FilePath -> MVar Config -> Config -> IO ()
 runWithConfig configFile configMV cfg = do 
   stoppedPool   <- newPool cfg
   pool          <- startPool stoppedPool
-  mayMonitorTid <- if configMonitor cfg
-                     then debugM "Installing monitor" >>
+  mayWatchDesc  <- if configMonitor cfg
+                     then 
                        Just <$> installMonitor configFile configMV
                      else return Nothing
   newCfg        <- takeMVar configMV
-  case mayMonitorTid of
-    Just tid -> debugM "Killing monitor" >> killThread tid
-    _        -> return ()
+  case mayWatchDesc of
+    Just desc -> uninstallMonitor configFile desc
+    _         -> return ()
   stopPool pool
   runWithConfig configFile configMV newCfg
 
 
-installMonitor :: FilePath -> MVar Config -> IO ThreadId
-installMonitor path configMV = forkIO $ monitorForUpdates path callback
+installMonitor :: FilePath -> MVar Config -> IO WatchDescriptor
+installMonitor path configMV = do debugM $ "Installing monitor for " ++ path
+                                  monitorForUpdates path callback
   where callback = logUpdate >> reloadConfig path configMV
         logUpdate = debugM $ "File " ++ path ++ " updated"
+
+uninstallMonitor :: FilePath -> WatchDescriptor -> IO ()
+uninstallMonitor path monitor = do debugM $ "Uninstalling monitor for " ++ path
+                                   stopMonitoring monitor
 
 reloadConfig :: FilePath -> MVar Config -> IO ()
 reloadConfig configFile configMV = runScript $ do
