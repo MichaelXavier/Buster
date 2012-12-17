@@ -49,21 +49,28 @@ runWithConfig :: FilePath -> MVar Config -> Config -> IO ()
 runWithConfig configFile configMV cfg = do 
   stoppedPool   <- newPool cfg
   pool          <- startPool stoppedPool
-  mayWatchDesc  <- if configMonitor cfg
-                     then 
-                       Just <$> installMonitor configFile configMV
-                     else return Nothing
-  newCfg        <- takeMVar configMV
-  case mayWatchDesc of
-    Just desc -> uninstallMonitor configFile desc
-    _         -> return ()
+  newCfg <- withMonitoring $ \inotify -> do
+    mayWatchDesc  <- if configMonitor cfg
+                      then 
+                        Just <$> installMonitor inotify configFile configMV
+                      else return Nothing
+    newCfg        <- takeMVar configMV
+
+    case mayWatchDesc of
+      Just desc -> uninstallMonitor configFile desc
+      _         -> return ()
+    return newCfg
+
   stopPool pool
   runWithConfig configFile configMV newCfg
 
 
-installMonitor :: FilePath -> MVar Config -> IO WatchDescriptor
-installMonitor path configMV = do debugM $ "Installing monitor for " ++ path
-                                  monitorForUpdates path callback
+installMonitor :: INotify -> FilePath -> MVar Config -> IO WatchDescriptor
+installMonitor inotify path configMV = do debugM $ "Installing monitor for " ++ path
+                                          desc <- monitorForUpdates inotify path callback
+                                          debugM $ "Monitor installed for " ++ path
+                                          return desc
+
   where callback = logUpdate >> reloadConfig path configMV
         logUpdate = debugM $ "File " ++ path ++ " updated"
 

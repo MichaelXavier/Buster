@@ -1,14 +1,20 @@
 module Buster.Request (makeRequest) where
 
+import Control.Applicative ((<$>))
 import Control.Error
 import Control.Monad.IO.Class (MonadIO, liftIO)
-import qualified Control.Exception.Base as E
+import qualified Control.Exception as E
 import Data.Char (toUpper)
 import Data.Conduit (runResourceT)
 import Data.Ix (inRange)
 import Data.Monoid (mconcat)
 import qualified Data.ByteString.Char8 as BS8 (unpack)
-import Network.HTTP.Conduit (Manager, Request(..), parseUrl, httpLbs, http, Response(..), withManager)
+import Network.HTTP.Conduit (Manager,
+                             Request(..),
+                             parseUrl,
+                             httpLbs,
+                             Response(..),
+                             HttpException)
 import Network.HTTP.Types (Status(..))
 
 import Buster.Types
@@ -16,12 +22,11 @@ import Buster.Logger
 
 makeRequest :: Manager -> UrlConfig -> IO ()
 makeRequest mgr urlConfig = do
-  resp <- runEitherT $ do
-    tryIOMsg $ do
-      debugM $ "Parsing " ++ url urlConfig
-      req  <- generateRequest urlConfig
-      debugM $ formatRequest urlConfig
-      runResourceT $ httpLbs req mgr
+  resp <- tryIOMsg $ do
+    debugM $ "Parsing " ++ url urlConfig
+    req  <- generateRequest urlConfig
+    debugM $ formatRequest urlConfig
+    runResourceT $ httpLbs req mgr
   either logErrorMessage logSuccess resp
   where logSuccess      = logResponse urlConfig
         logErrorMessage = errorM
@@ -47,10 +52,23 @@ logResponse urlConfig Response { responseStatus = Status { statusCode = code},
         logFailure = errorM formatMessage
         formatMessage = mconcat [show code, " (", formatRequest urlConfig, ")"]
 
-tryIOMsg :: (MonadIO m) => IO a -> EitherT String m a
-tryIOMsg action = fmapLT show $ tryIO' action
+tryIOMsg :: IO a -> IO (Either String b)
+tryIOMsg action = tryIO' action
 
--- Need to be able to catch everything since parsing URLs can throw
--- ParseExceptions. Why does Haskell even have exceptions :(
-tryIO' :: (MonadIO m) => IO a -> EitherT E.SomeException m a
-tryIO' = EitherT . liftIO . E.try
+tryIO' :: IO a -> IO (Either String b)
+tryIO' action = action' `E.catches` handlers
+  where action' :: IO (Either String b)
+        action' = do x <- action
+                     return (Right x)
+
+handlerIO :: (E.IOException -> IO (Either String a)) -> E.Handler (Either String a)
+handlerIO   = E.Handler
+
+handlerHttp :: (HttpException -> IO (Either String a)) -> E.Handler (Either String a)
+handlerHttp = E.Handler
+
+handler :: (Show e, E.Exception e) => e -> IO (Either String a)
+handler e   = return . Left . show $ e
+
+handlers :: [E.Handler (Either String a)]
+handlers    = [handlerIO handler, handlerHttp handler]
