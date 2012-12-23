@@ -25,6 +25,8 @@ urls: []
         |]
         fullConfigStr = [s|
 verbose: true
+monitor: true
+log_file: "/path/to/output.log"
 urls:
 - url: http://www.example.com
   interval: 1000
@@ -32,12 +34,16 @@ urls:
         |]
         fullConfigNoMethodStr = [s|
 verbose: true
+monitor: true
+log_file: "/path/to/output.log"
 urls:
 - url: http://www.example.com
   interval: 1000
         |]
         fullConfigMultipleStr = [s|
 verbose: true
+monitor: true
+log_file: "/path/to/output.log"
 urls:
 - url: http://www.example.com
   interval: 1000
@@ -46,12 +52,21 @@ urls:
   interval: 1000
   method: GET
         |]
-        baseConfig = Config { configVerbose = False, urlConfigs = []}
+        baseConfig = Config { configVerbose = False,
+                              urlConfigs    = [],
+                              configMonitor = False,
+                              configLogFile = Nothing}
         fullConfigGet = Config { configVerbose = True,
+                                 configMonitor = True,
+                                 configLogFile = Just "/path/to/output.log",
                                  urlConfigs = [fullUrlConfig { requestMethod = "GET"}]}
         fullConfig = Config { configVerbose = True,
+                              configMonitor = True,
+                              configLogFile = Just "/path/to/output.log",
                               urlConfigs = [fullUrlConfig]}
         fullConfigMultiple = Config { configVerbose = True,
+                                      configMonitor = True,
+                                      configLogFile = Just "/path/to/output.log",
                                       urlConfigs = [fullUrlConfig,
                                                     fullUrlConfig { requestMethod = "GET"}]}
         fullUrlConfig = UrlConfig { url             = "http://www.example.com",

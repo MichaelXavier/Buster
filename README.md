@@ -26,6 +26,8 @@ Take a look in the example directory. Buster is configured with a yaml file:
 
 ```yaml
 verbose: true
+monitor: false
+log_file: /var/log/buster.log
 urls:
 - url: http://www.example.com
   interval: 5
@@ -35,13 +37,15 @@ urls:
   method: GET
 ```
 
-Interval is measured in seconds.
+Interval is measured in seconds. Monitor will begin auto-loading your config.
+If you have a process running and you decide you want the config monitored,
+send a HUP to the process and from then on it will monitor the file. If no
+`log_file` config is specified, it will log to stdout.
 
 Status
 ======
 The project currently works. Here are some improvements I want to make
 
-* Auto-load config file flag.
 * Release to hackage
 
 Development

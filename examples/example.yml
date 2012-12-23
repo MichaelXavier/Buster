@@ -1,5 +1,6 @@
 verbose: true
 monitor: true
+log_file: /tmp/buster.log
 urls:
 - url: http://www.example.org
   interval: 5

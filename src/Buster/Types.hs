@@ -14,13 +14,15 @@ import Network.HTTP.Types (Method)
 data Config = Config {
   configVerbose :: Bool,
   configMonitor :: Bool,
-  urlConfigs :: [UrlConfig]
+  urlConfigs :: [UrlConfig],
+  configLogFile :: Maybe FilePath
 } deriving (Show, Eq)
 
 instance FromJSON Config where
   parseJSON (Object v) = Config <$> v .:? "verbose" .!= False
                                 <*> v .:? "monitor" .!= False
-                                <*> v .: "urls"
+                                <*> v .:  "urls"
+                                <*> v .:? "log_file"
   parseJSON _          = fail "Expecting Object"
 
 data UrlConfig = UrlConfig {

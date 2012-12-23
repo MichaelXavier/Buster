@@ -22,12 +22,16 @@ spec = do
         loadConfig path `shouldReturn` Right fullConfig
   where fullConfigStr = [s|
 verbose: true
+monitor: true
+log_file: /path/to/output.log
 urls:
 - url: http://www.example.com
   interval: 1000
   method: POST
         |]
         fullConfig = Config { configVerbose = True,
+                              configMonitor = True,
+                              configLogFile = Just "/path/to/output.log",
                               urlConfigs = [fullUrlConfig]}
         fullUrlConfig = UrlConfig { url             = "http://www.example.com",
                                     requestInterval = 1000,

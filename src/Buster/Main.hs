@@ -82,10 +82,11 @@ reloadConfig :: FilePath -> MVar Config -> IO ()
 reloadConfig configFile configMV = runScript $ do
   scriptIO $ debugM "Config file reloading"
   config' <- scriptIO $ loadConfig configFile
-  config  <- hoistEither config'
+  config@Config { configVerbose = verbose,
+                  configLogFile = logFile}  <- hoistEither config'
   scriptIO $ do
     debugM "Config file successfully parsed"
     debugM "Reconfiguring Logger"
-    configureLogger $ configVerbose config
+    configureLogger logFile verbose
     debugM "Reconfiguring Logger"
     putMVar configMV config

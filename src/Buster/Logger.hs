@@ -10,7 +10,7 @@ module Buster.Logger (configureLogger,
                       emergencyM) where
 
 import Control.Applicative ((<$>), (<*>), pure)
-import System.IO (stdout)
+import System.IO (stdout, openFile, IOMode(..))
 import System.Log.Logger (updateGlobalLogger,
                           Priority(..),
                           rootLoggerName,
@@ -21,13 +21,17 @@ import System.Log.Handler (setFormatter)
 import System.Log.Handler.Simple (verboseStreamHandler)
 import qualified System.Log.Logger as L
 
-configureLogger :: Bool -> IO ()
-configureLogger verbose = do handler <- setFormatter <$> defaultHandler <*> pure defaultFormatter
-                             setLogHandler handler
-                             setLogLevel
+configureLogger :: Maybe FilePath -> Bool -> IO ()
+configureLogger logFile verbose = do handle <- getHandle 
+                                     handler <- setFormatter <$> defaultHandler handle <*> pure defaultFormatter
+                                     setLogHandler handler
+                                     setLogLevel
 
                              
-  where defaultHandler = verboseStreamHandler stdout logLevel 
+  where defaultHandler handle = verboseStreamHandler handle logLevel 
+        getHandle             = case logFile of
+                                  Just path -> openFile path AppendMode
+                                  _         -> return stdout
         setLogHandler handler = updateGlobalLogger defaultLog $ setHandlers [handler]
         setLogLevel           = updateGlobalLogger defaultLog $ setLevel logLevel
         defaultFormatter      = simpleLogFormatter defaultFormat
