@@ -12,6 +12,12 @@ copyright:           (c) 2012 Michael Xavier
 category:            Web
 build-type:          Simple
 cabal-version:       >=1.8
+tested-with:         GHC == 7.6.1
+extra-source-files:
+  README.md
+  LICENSE
+  TODO
+  examples/example.yml
 
 executable buster
   hs-source-dirs:      src
