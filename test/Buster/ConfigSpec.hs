@@ -1,4 +1,3 @@
-{-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE OverloadedStrings #-}
 module Buster.ConfigSpec (spec) where
@@ -15,11 +14,10 @@ import Buster.Types
 import Buster.Config
 
 spec :: Spec
-spec = do
-  describe "parsing from file" $ do
-    it "parses a full config successfully" $ do
-      withPreloadedFile fullConfigStr $ \path -> do
-        loadConfig path `shouldReturn` Right fullConfig
+spec = describe "parsing from file" $
+  it "parses a full config successfully" $
+    withPreloadedFile fullConfigStr $ \path ->
+      loadConfig path `shouldReturn` Right fullConfig
   where fullConfigStr = [s|
 verbose: true
 monitor: true

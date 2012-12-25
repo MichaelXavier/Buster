@@ -9,8 +9,7 @@ import Data.Yaml (decodeEither)
 import Buster.Types
 
 spec :: Spec
-spec = do
-  describe "parsing Config" $ do
+spec = describe "parsing Config" $ do
     it "parses a minimal Config" $ 
       parseStr baseConfigStr `shouldBe` Right baseConfig
     it "parses a full Config" $ 

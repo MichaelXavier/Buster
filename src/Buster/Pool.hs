@@ -23,7 +23,7 @@ import Buster.Request (makeRequest)
 stopPool :: BusterPool -> IO BusterPool
 stopPool bp@BusterPool { workers = ws,
                          connectionManager = mgr } = do
-  mapM killThread ws
+  mapM_ killThread ws
   closeManager mgr
   return bp { workers = []}
 
@@ -44,4 +44,4 @@ buildWorker :: Manager -> UrlConfig -> IO Worker
 buildWorker mgr urlConfig = forkIO $ forever $ do
                               makeRequest mgr urlConfig
                               delay microseconds
-  where microseconds = 1000000 * (requestInterval urlConfig)
+  where microseconds = 1000000 * requestInterval urlConfig

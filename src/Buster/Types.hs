@@ -6,7 +6,6 @@ module Buster.Types (Config(..),
 
 import Control.Applicative ((<$>), (<*>))
 import Control.Concurrent (ThreadId)
-import Data.List (intercalate)
 import Data.Yaml (FromJSON(..), (.:?), (.:), (.!=), Value(..))
 import Network.HTTP.Conduit (Manager)
 import Network.HTTP.Types (Method)
@@ -45,8 +44,8 @@ data BusterPool = BusterPool {
 
 instance Show BusterPool where
   show BusterPool { config = cfg,
-                    workers = ws} = intercalate " " ["BusterPool",
-                                                     show cfg,
-                                                     show ws]
+                    workers = ws} = unwords ["BusterPool",
+                                             show cfg,
+                                             show ws]
 
 type Worker = ThreadId

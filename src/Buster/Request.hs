@@ -53,10 +53,7 @@ logResponse urlConfig Response { responseStatus = Status { statusCode = code},
         formatMessage = mconcat [show code, " (", formatRequest urlConfig, ")"]
 
 tryIOMsg :: IO a -> IO (Either String a)
-tryIOMsg action = tryIO' action
-
-tryIO' :: IO a -> IO (Either String a)
-tryIO' action = action' `E.catches` handlers
+tryIOMsg action = action' `E.catches` handlers
    where action' = Right <$> action
 
 handlerIO :: (E.IOException -> IO (Either String a)) -> E.Handler (Either String a)
