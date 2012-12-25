@@ -1,25 +1,18 @@
 module Main (main) where
 
 import Control.Applicative ((<$>))
-import Control.Concurrent (threadDelay,
-                           killThread,
-                           forkIO,
-                           ThreadId)
-import Control.Concurrent.MVar
-import Control.Error (hoistEither)
-import Control.Error.Script (Script, runScript, scriptIO)
+import Control.Concurrent.MVar (takeMVar)
+import Control.Error.Script (runScript,
+                             scriptIO)
 import Control.Error.Safe (tryHead)
-import Control.Monad (forever)
--- sigh
-import Control.Monad.Trans.Class (lift)
-import Control.Monad.IO.Class (liftIO)
-import Data.Maybe (listToMaybe)
 import System.Environment (getArgs)
-import System.Exit (exitFailure)
-import System.Posix.Signals (SignalSet, addSignal, emptySignalSet, awaitSignal, sigHUP, blockSignals, reservedSignals, installHandler, Handler(..))
 
-import Buster.Pool (newPool, startPool, stopPool)
-import Buster.Config (loadConfig)
+import Buster.Pool (newPool,
+                    startPool,
+                    stopPool)
+import Buster.Config (installReloadHandler,
+                      reloadConfig,
+                      setupConfigWatch)
 import Buster.Types
 import Buster.Logger
 import Buster.Monitor
@@ -30,31 +23,32 @@ main = runScript $ do
          configFile <- tryHead "Specify a config file" args
 
          scriptIO $ do
-          configMV   <- newEmptyMVar
+          configWatch <- setupConfigWatch
 
           debugM "Loading initial config"
 
-          reloadConfig configFile configMV
+          reloadConfig configFile configWatch
 
           debugM "Installing Signal Handlers"
-          blockSignals reservedSignals
-          installHandler sigHUP (Catch $ reloadConfig configFile configMV) Nothing
 
-          run configFile configMV
+          installReloadHandler configFile configWatch
 
-run :: FilePath -> MVar Config -> IO ()
-run configFile configMV = runScript $ scriptIO $ runWithConfig configFile configMV =<< takeMVar configMV
+          run configFile configWatch
 
-runWithConfig :: FilePath -> MVar Config -> Config -> IO ()
-runWithConfig configFile configMV cfg = do 
+--TODO: takMVar is a leaky abstraction here
+run :: FilePath -> ConfigWatch -> IO ()
+run configFile configWatch = runScript $ scriptIO $ runWithConfig configFile configWatch =<< takeMVar configWatch
+
+runWithConfig :: FilePath -> ConfigWatch -> Config -> IO ()
+runWithConfig configFile configWatch cfg = do 
   stoppedPool   <- newPool cfg
   pool          <- startPool stoppedPool
   newCfg <- withMonitoring $ \inotify -> do
     mayWatchDesc  <- if configMonitor cfg
                       then 
-                        Just <$> installMonitor inotify configFile configMV
+                        Just <$> installMonitor inotify configFile configWatch
                       else return Nothing
-    newCfg        <- takeMVar configMV
+    newCfg        <- takeMVar configWatch
 
     case mayWatchDesc of
       Just desc -> uninstallMonitor configFile desc
@@ -62,31 +56,4 @@ runWithConfig configFile configMV cfg = do
     return newCfg
 
   stopPool pool
-  runWithConfig configFile configMV newCfg
-
-
-installMonitor :: INotify -> FilePath -> MVar Config -> IO WatchDescriptor
-installMonitor inotify path configMV = do debugM $ "Installing monitor for " ++ path
-                                          desc <- monitorForUpdates inotify path callback
-                                          debugM $ "Monitor installed for " ++ path
-                                          return desc
-
-  where callback = logUpdate >> reloadConfig path configMV
-        logUpdate = debugM $ "File " ++ path ++ " updated"
-
-uninstallMonitor :: FilePath -> WatchDescriptor -> IO ()
-uninstallMonitor path monitor = do debugM $ "Uninstalling monitor for " ++ path
-                                   stopMonitoring monitor
-
-reloadConfig :: FilePath -> MVar Config -> IO ()
-reloadConfig configFile configMV = runScript $ do
-  scriptIO $ debugM "Config file reloading"
-  config' <- scriptIO $ loadConfig configFile
-  config@Config { configVerbose = verbose,
-                  configLogFile = logFile}  <- hoistEither config'
-  scriptIO $ do
-    debugM "Config file successfully parsed"
-    debugM "Reconfiguring Logger"
-    configureLogger logFile verbose
-    debugM "Reconfiguring Logger"
-    putMVar configMV config
+  runWithConfig configFile configWatch newCfg

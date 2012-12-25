@@ -2,8 +2,11 @@ module Buster.Pool (stopPool,
                     newPool,
                     startPool) where
 
-import Control.Applicative ((<$>),(<*>), pure)
-import Control.Concurrent (killThread, forkIO)
+import Control.Applicative ((<$>),
+                            (<*>),
+                            pure)
+import Control.Concurrent (killThread,
+                           forkIO)
 import Control.Concurrent.Thread.Delay (delay)
 import Control.Monad (forever)
 import Data.Default (def)
@@ -11,12 +14,6 @@ import Network.HTTP.Conduit (Manager,
                              newManager,
                              closeManager)
 
-
-import Control.Error.Script
-import Control.Error.Util
-
-
-import Buster.Logger
 import Buster.Types
 import Buster.Request (makeRequest)
 

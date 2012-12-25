@@ -2,13 +2,17 @@
 module Buster.Types (Config(..),
                      UrlConfig(..),
                      Worker,
+                     ConfigWatch,
                      BusterPool(..)) where
 
 import Control.Applicative ((<$>), (<*>))
 import Control.Concurrent (ThreadId)
+import Control.Concurrent.MVar (MVar)
 import Data.Yaml (FromJSON(..), (.:?), (.:), (.!=), Value(..))
 import Network.HTTP.Conduit (Manager)
 import Network.HTTP.Types (Method)
+
+type ConfigWatch = MVar (Config)
 
 data Config = Config {
   configVerbose :: Bool,

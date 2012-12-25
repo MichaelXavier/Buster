@@ -1,8 +1,6 @@
 module Buster.Request (makeRequest) where
 
 import Control.Applicative ((<$>))
-import Control.Error
-import Control.Monad.IO.Class (MonadIO, liftIO)
 import qualified Control.Exception as E
 import Data.Char (toUpper)
 import Data.Conduit (runResourceT)
