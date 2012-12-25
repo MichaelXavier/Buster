@@ -1,7 +1,6 @@
 module Main (main) where
 
 import Control.Applicative ((<$>))
-import Control.Concurrent.MVar (takeMVar)
 import Control.Error.Script (runScript,
                              scriptIO)
 import Control.Error.Safe (tryHead)
@@ -12,6 +11,7 @@ import Buster.Pool (newPool,
                     stopPool)
 import Buster.Config (installReloadHandler,
                       reloadConfig,
+                      summonConfig,
                       setupConfigWatch)
 import Buster.Types
 import Buster.Logger
@@ -37,7 +37,7 @@ main = runScript $ do
 
 --TODO: takMVar is a leaky abstraction here
 run :: FilePath -> ConfigWatch -> IO ()
-run configFile configWatch = runScript $ scriptIO $ runWithConfig configFile configWatch =<< takeMVar configWatch
+run configFile configWatch = runScript $ scriptIO $ runWithConfig configFile configWatch =<< summonConfig configWatch
 
 runWithConfig :: FilePath -> ConfigWatch -> Config -> IO ()
 runWithConfig configFile configWatch cfg = do 
@@ -48,7 +48,7 @@ runWithConfig configFile configWatch cfg = do
                       then 
                         Just <$> installMonitor inotify configFile configWatch
                       else return Nothing
-    newCfg        <- takeMVar configWatch
+    newCfg        <- summonConfig configWatch
 
     case mayWatchDesc of
       Just desc -> uninstallMonitor configFile desc

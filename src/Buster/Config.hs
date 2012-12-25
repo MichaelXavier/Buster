@@ -1,9 +1,11 @@
 module Buster.Config (loadConfig,
                       setupConfigWatch,
                       reloadConfig,
+                      summonConfig,
                       installReloadHandler) where
 
 import Control.Concurrent.MVar (newEmptyMVar,
+                                takeMVar,
                                 putMVar)
 import Control.Monad (void)
 import Control.Error (runScript,
@@ -43,3 +45,6 @@ installReloadHandler :: FilePath -> ConfigWatch -> IO ()
 installReloadHandler configFile configWatch = void $ do
   blockSignals reservedSignals
   installHandler sigHUP (Catch $ reloadConfig configFile configWatch) Nothing
+
+summonConfig :: ConfigWatch -> IO (Config)
+summonConfig = takeMVar
