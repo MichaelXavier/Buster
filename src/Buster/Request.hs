@@ -1,7 +1,7 @@
 module Buster.Request (makeRequest) where
 
 import Control.Applicative ((<$>))
-import qualified Control.Exception as E
+import Control.Error (fmapL)
 import Data.Char (toUpper)
 import Data.Conduit (runResourceT)
 import Data.Ix (inRange)
@@ -17,6 +17,7 @@ import Network.HTTP.Types (Status(..))
 
 import Buster.Types
 import Buster.Logger
+import Buster.Util
 
 makeRequest :: Manager -> UrlConfig -> IO ()
 makeRequest mgr urlConfig = do
@@ -33,6 +34,7 @@ generateRequest :: UrlConfig -> IO (Request m')
 generateRequest UrlConfig { url = u,
                             requestMethod = meth } = do req <- parseUrl u
                                                         return req { method = meth,
+                                                                     responseTimeout = Nothing,
                                                                      checkStatus = \_ _ -> Nothing }
 
 formatRequest :: UrlConfig -> String
@@ -51,17 +53,4 @@ logResponse urlConfig Response { responseStatus = Status { statusCode = code},
         formatMessage = mconcat [show code, " (", formatRequest urlConfig, ")"]
 
 tryIOMsg :: IO a -> IO (Either String a)
-tryIOMsg action = action' `E.catches` handlers
-   where action' = Right <$> action
-
-handlerIO :: (E.IOException -> IO (Either String a)) -> E.Handler (Either String a)
-handlerIO   = E.Handler
-
-handlerHttp :: (HttpException -> IO (Either String a)) -> E.Handler (Either String a)
-handlerHttp = E.Handler
-
-handler :: (Show e, E.Exception e) => e -> IO (Either String a)
-handler e   = return . Left . show $ e
-
-handlers :: [E.Handler (Either String a)]
-handlers    = [handlerIO handler, handlerHttp handler]
+tryIOMsg action = fmapL show <$> tryPokemonIO action
