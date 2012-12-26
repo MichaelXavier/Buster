@@ -11,8 +11,7 @@ import Network.HTTP.Conduit (Manager,
                              Request(..),
                              parseUrl,
                              httpLbs,
-                             Response(..),
-                             HttpException)
+                             Response(..))
 import Network.HTTP.Types (Status(..))
 
 import Buster.Types
