@@ -2,7 +2,6 @@ module Buster.Request (makeRequest) where
 
 import Control.Applicative ((<$>))
 import Control.Error (fmapL)
-import qualified Control.Exception as E
 import Data.Char (toUpper)
 import Data.Conduit (runResourceT)
 import Data.Ix (inRange)
@@ -55,15 +54,3 @@ logResponse urlConfig Response { responseStatus = Status { statusCode = code},
 
 tryIOMsg :: IO a -> IO (Either String a)
 tryIOMsg action = fmapL show <$> tryPokemonIO action
-
-handlerIO :: (E.IOException -> IO (Either String a)) -> E.Handler (Either String a)
-handlerIO   = E.Handler
-
-handlerHttp :: (HttpException -> IO (Either String a)) -> E.Handler (Either String a)
-handlerHttp = E.Handler
-
-handler :: (Show e, E.Exception e) => e -> IO (Either String a)
-handler e   = return . Left . show $ e
-
-handlers :: [E.Handler (Either String a)]
-handlers    = [handlerIO handler, handlerHttp handler]

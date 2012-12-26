@@ -6,8 +6,6 @@ module Buster.Util (decodeFileEither,
                     tryPokemonIO) where
 
 import Control.Applicative
-import Control.Exception (throwIO)
-import Control.Error (fmapL)
 import Data.Yaml (FromJSON, decodeHelper)
 import qualified Text.Libyaml as Y (decodeFile)
 
