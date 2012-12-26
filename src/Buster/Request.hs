@@ -33,6 +33,7 @@ generateRequest :: UrlConfig -> IO (Request m')
 generateRequest UrlConfig { url = u,
                             requestMethod = meth } = do req <- parseUrl u
                                                         return req { method = meth,
+                                                                     responseTimeout = Nothing,
                                                                      checkStatus = \_ _ -> Nothing }
 
 formatRequest :: UrlConfig -> String
