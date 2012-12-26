@@ -1,6 +1,7 @@
 module Buster.Request (makeRequest) where
 
 import Control.Applicative ((<$>))
+import Control.Error (fmapL)
 import qualified Control.Exception as E
 import Data.Char (toUpper)
 import Data.Conduit (runResourceT)
@@ -17,6 +18,7 @@ import Network.HTTP.Types (Status(..))
 
 import Buster.Types
 import Buster.Logger
+import Buster.Util
 
 makeRequest :: Manager -> UrlConfig -> IO ()
 makeRequest mgr urlConfig = do
@@ -52,8 +54,7 @@ logResponse urlConfig Response { responseStatus = Status { statusCode = code},
         formatMessage = mconcat [show code, " (", formatRequest urlConfig, ")"]
 
 tryIOMsg :: IO a -> IO (Either String a)
-tryIOMsg action = action' `E.catches` handlers
-   where action' = Right <$> action
+tryIOMsg action = fmapL show <$> tryPokemonIO action
 
 handlerIO :: (E.IOException -> IO (Either String a)) -> E.Handler (Either String a)
 handlerIO   = E.Handler
