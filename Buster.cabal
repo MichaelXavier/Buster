@@ -1,9 +1,9 @@
--- documentation, see http://haskell.org/cabal/users-guide/
-
 name:                Buster
 version:             0.1.0
 synopsis:            Hits a set of urls periodically to bust caches
--- description:         
+description:
+  Buster is a simple tool to periodically make requests to a list of URLs. The
+  main use case for this is to bust caches.
 license:             MIT
 license-file:        LICENSE
 author:              Michael Xavier <michael@michaelxavier.net>
