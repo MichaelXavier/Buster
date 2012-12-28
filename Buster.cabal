@@ -58,4 +58,4 @@ test-suite spec
 
 source-repository head
   Type:     git
-  Location: https://github.com/michaelxavier/Buster
+  Location: git://github.com/MichaelXavier/Buster.git
