@@ -2,6 +2,8 @@ Buster
 ====
 [![Build Status](https://travis-ci.org/MichaelXavier/Buster.png?branch=master)](https://travis-ci.org/MichaelXavier/Buster)
 
+![Hey Brother!](http://i.imgur.com/14BJn.jpg "Hey Brother")
+
 Utility for periodically hitting URLs. The intended use case is forcing caches
 to be busted.
 
